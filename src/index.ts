@@ -1,4 +1,5 @@
 export { parseBSML } from './parser/index.js';
+export { transform } from './transformer/index.js';
 export type {
     BSMLDocument,
     BalanceSheetNode,
@@ -9,3 +10,9 @@ export type {
     EdgeNode,
     CalloutNode,
 } from './ast/types.js';
+export type {
+    BSMLReactFlowData,
+    BalanceSheetNodeData,
+    NoteNodeData,
+    CalloutNodeData,
+} from './transformer/index.js';

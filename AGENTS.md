@@ -9,7 +9,7 @@ A TypeScript toolkit to **parse** and **render** BSML (Balance Sheet Modeling La
 ```
 bsml-renderer/
 ├── src/
-│   ├── index.ts              # Barrel export: parseBSML + all AST types
+│   ├── index.ts              # Barrel export: parseBSML, transform + all types
 │   ├── ast/
 │   │   └── types.ts           # AST interfaces (BSMLDocument, TreeNode, etc.)
 │   ├── parser/
@@ -17,6 +17,10 @@ bsml-renderer/
 │   │   ├── lexer.ts           # Chevrotain token definitions
 │   │   ├── parser.ts          # CST grammar rules
 │   │   └── visitor.ts         # CST → AST visitor
+│   ├── transformer/
+│   │   ├── index.ts           # Barrel export: transform + types
+│   │   ├── transformer.ts     # Pure fn: BSMLDocument → React Flow nodes+edges
+│   │   └── types.ts           # BSMLReactFlowData, BalanceSheetNodeData, etc.
 │   └── react/                 # (empty — future renderer)
 │       ├── components/
 │       ├── edges/
@@ -24,9 +28,11 @@ bsml-renderer/
 │       └── styles/
 ├── tests/
 │   ├── fixtures/
-│   │   └── fixtures.ts        # 3 input+expected-AST pairs
-│   └── parser/
-│       └── parser.test.ts     # Vitest: deep-equals against fixtures
+│   │   └── fixtures.ts        # 4 input+expected-AST pairs
+│   ├── parser/
+│   │   └── parser.test.ts     # Bun test: deep-equals against fixtures
+│   └── transformer/
+│       └── transformer.test.ts # Bun test: transform output against expected data
 ├── demo/                      # (empty — future demo app)
 ├── docs/                      # Documentation and Specifications
 │   └── bsml_spec_v1.3.md      # Language spec
@@ -48,7 +54,7 @@ bsml-renderer/
 ## Public API
 
 ```typescript
-import { parseBSML } from './src/index.js';
+import { parseBSML, transform } from './src/index.js';
 
 const ast = parseBSML(`
   BalanceSheet "MyCompany" {
@@ -59,22 +65,29 @@ const ast = parseBSML(`
   }
 `);
 // ast: BSMLDocument
+
+const { nodes, edges } = transform(ast);
+// nodes: Node[]  (React Flow compatible)
+// edges: Edge[]  (React Flow compatible)
 ```
 
 ## Tech Stack
 
 - **Language:** TypeScript (ES2020, strict)
 - **Parser:** [Chevrotain](https://chevrotain.io/) v11 (tokenizer + CST parser + visitor)
-- **Tests:** [Vitest](https://vitest.dev/) v3
-- **Renderer:** React Flow / @xyflow/react (planned, not yet implemented)
+- **Transformer:** Pure function layer — AST → React Flow nodes + edges (spec v1.1)
+- **Tests:** [Bun test runner](https://bun.sh/docs/cli/test)
+- **Renderer:** React Flow / @xyflow/react (types used by transformer; UI not yet implemented)
 
 ## Agent Core Directives
 
 1. **Continuous Updates:** The Agent MUST continuously update this `AGENTS.md` file as the project evolves, ensuring it acts as the accurate single source of truth for the codebase.
 2. **KISS / DRY / YAGNI:** The Agent pledges absolute allegiance to KISS (Keep It Simple, Stupid), DRY (Don't Repeat Yourself), and YAGNI (You Aren't Gonna Need It). The Agent will prioritize simplicity, strictly avoid over-engineering, and never build speculative features.
 3. **No `orders/` Access:** The `orders/` directory is strictly a temporary mailbox for task instructions. The Agent MUST NOT read from, reference, or depend on files inside `orders/` for ongoing development or runtime behavior. Permanent specifications must be copied to `docs/`.
-4. **Temporary Scripts:** Any temporary utility scripts, sandbox codes, or ad-hoc test files MUST be placed either inside the `tmp/` directory or within the specific project directory inside `orders/` (e.g., `orders/0002-feature/`). They should never clutter the main source code directories.
+4. **Completion Reports:** After completing an order, the Agent MUST write a `report.md` inside the order directory (e.g., `orders/0002-transformer/report.md`) summarizing what was built, files created/modified, test results, and notes for next steps. See existing reports for format reference.
+5. **Temporary Scripts:** Any temporary utility scripts, sandbox codes, or ad-hoc test files MUST be placed either inside the `tmp/` directory or within the specific project directory inside `orders/` (e.g., `orders/0002-feature/`). They should never clutter the main source code directories.
 
 ## Spec Reference
 
-Full spec: `docs/bsml_spec_v1.3.md`
+- Language spec: `docs/bsml_spec_v1.3.md`
+- Transformer spec: `docs/transformer_spec_v1.1.md`
