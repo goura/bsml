@@ -27,4 +27,38 @@ describe('BSML Parser', () => {
         const result = parseBSML(fixture4_input);
         expect(result).toEqual(fixture4_ast);
     });
+
+    it('does not tokenize "piechart" as Pie keyword', () => {
+        const input = `
+BalanceSheet "ExampleCorp" {
+  Assets {
+    piechart "Pie Chart Asset" : 100
+  }
+  Liabilities {}
+  Equity { capital : 100 }
+}
+`;
+        const result = parseBSML(input);
+        expect(result.balanceSheets[0].assets[0]).toEqual({
+            type: 'item',
+            alias: 'piechart',
+            label: 'Pie Chart Asset',
+            amount: 100,
+        });
+        expect(result.callouts).toEqual([]);
+    });
+
+    it('rejects pie block without alias in source ref', () => {
+        const input = `
+BalanceSheet "ExampleCorp" {
+  Assets { cash : 100 }
+  Liabilities {}
+  Equity { capital : 100 }
+}
+pie ExampleCorp {
+  "A" : 100
+}
+`;
+        expect(() => parseBSML(input)).toThrow(/Parser errors:/);
+    });
 });

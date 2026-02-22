@@ -14,14 +14,14 @@ export const LineComment = createToken({
 });
 
 // Keywords (must be defined BEFORE Identifier)
-export const BalanceSheet = createToken({ name: 'BalanceSheet', pattern: /BalanceSheet/, longer_alt: undefined });
-export const Assets = createToken({ name: 'Assets', pattern: /Assets/ });
-export const Liabilities = createToken({ name: 'Liabilities', pattern: /Liabilities/ });
-export const Equity = createToken({ name: 'Equity', pattern: /Equity/ });
-export const Note = createToken({ name: 'Note', pattern: /note/ });
-export const Pie = createToken({ name: 'Pie', pattern: /pie/ });
-export const Config = createToken({ name: 'Config', pattern: /config/ });
-export const Text = createToken({ name: 'Text', pattern: /text/ });
+export const BalanceSheet = createToken({ name: 'BalanceSheet', pattern: /\bBalanceSheet\b/ });
+export const Assets = createToken({ name: 'Assets', pattern: /\bAssets\b/ });
+export const Liabilities = createToken({ name: 'Liabilities', pattern: /\bLiabilities\b/ });
+export const Equity = createToken({ name: 'Equity', pattern: /\bEquity\b/ });
+export const Note = createToken({ name: 'Note', pattern: /\bnote\b/ });
+export const Pie = createToken({ name: 'Pie', pattern: /\bpie\b/ });
+export const Config = createToken({ name: 'Config', pattern: /\bconfig\b/ });
+export const Text = createToken({ name: 'Text', pattern: /\btext\b/ });
 
 // Operators / punctuation (multi-char before single-char)
 export const DottedArrow = createToken({ name: 'DottedArrow', pattern: /-.->/ });

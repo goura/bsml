@@ -57,8 +57,8 @@ bsml-renderer/
 │   ├── index.html             # HTML shell
 │   └── src/
 │       ├── main.tsx           # React 19 entry point
-│       ├── App.tsx            # Split-pane: Monaco editor ↔ BSMLCanvas
-│       ├── App.css            # Layout, error banner styles
+│       ├── App.tsx            # Resizable split-pane: Monaco editor ↔ BSMLCanvas
+│       ├── App.css            # Resizable layout, divider, error banner styles
 │       └── defaultCode.ts     # Pre-filled BSML example
 ├── docs/                      # Documentation and Specifications
 │   └── bsml_spec_v1.3.md      # Language spec
@@ -78,6 +78,9 @@ bsml-renderer/
 | `Assets`/`Liabilities`/`Equity` are structural keywords | They map directly to `TreeNode[]` arrays, NOT to `CategoryNode`s |
 | **`calculatedHeight` vs `totalHeight`** | `totalHeight` = bar-area px (used by React component); `calculatedHeight` = full node px including header+padding (used by Dagre) |
 | **Layout constants are centralized** | `src/constants/layout.ts` is the single source of truth for widths/heights used by transformer and annotation nodes |
+| **Keyword lexing uses word boundaries** | Prevents collisions where identifiers like `piechart` could be split/misread as keyword tokens |
+| **Pie source alias is mandatory** | `pie` syntax is strictly `pie <BSId>.<alias> { ... }` to guarantee stable per-item handle IDs |
+| **Demo panes are user-resizable** | The demo split view uses a draggable divider with clamped editor width (20%–80%), with stacked fallback on narrow screens |
 
 ## Public API
 
@@ -106,7 +109,7 @@ const { nodes, edges } = transform(ast);
 - **Transformer:** Pure function layer — AST → React Flow nodes + edges (spec v1.1)
 - **Tests:** [Bun test runner](https://bun.sh/docs/cli/test) + [@testing-library/react](https://testing-library.com/docs/react-testing-library/intro/) + happy-dom
 - **Renderer:** `<BalanceSheetNode />` custom React Flow node (spec v1.0)
-- **Demo App:** Vite + `@monaco-editor/react` split-pane playground (`demo/`)
+- **Demo App:** Vite + `@monaco-editor/react` resizable split-pane playground (`demo/`)
 
 ## Agent Core Directives
 

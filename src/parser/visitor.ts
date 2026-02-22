@@ -165,7 +165,10 @@ class BSMLVisitor extends BaseVisitor {
     }
 
     pieBlock(ctx: any): CalloutNode {
-        const ref = this.visit(ctx.edgeRef[0]);
+        const ref = this.visit(ctx.pieSourceRef[0]);
+        if (!ref.alias) {
+            throw new Error(`Invalid pie source reference: expected "<BalanceSheetId>.<alias>", got "${ref.nodeId}"`);
+        }
         const data: Record<string, number> = {};
         if (ctx.pieEntry) {
             for (const entry of ctx.pieEntry) {
@@ -176,6 +179,13 @@ class BSMLVisitor extends BaseVisitor {
         return {
             source: { bsId: ref.nodeId, alias: ref.alias },
             data,
+        };
+    }
+
+    pieSourceRef(ctx: any): { nodeId: string; alias: string } {
+        return {
+            nodeId: ctx.Identifier[0].image,
+            alias: ctx.Identifier[1].image,
         };
     }
 

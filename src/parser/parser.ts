@@ -153,10 +153,16 @@ export class BSMLParser extends CstParser {
 
     private pieBlock = this.RULE('pieBlock', () => {
         this.CONSUME(Pie);
-        this.SUBRULE(this.edgeRef);  // source ref
+        this.SUBRULE(this.pieSourceRef);  // source ref (alias is mandatory)
         this.CONSUME(LBrace);
         this.MANY(() => this.SUBRULE(this.pieEntry));
         this.CONSUME(RBrace);
+    });
+
+    private pieSourceRef = this.RULE('pieSourceRef', () => {
+        this.CONSUME(Identifier); // bsId
+        this.CONSUME(Dot);
+        this.CONSUME2(Identifier); // alias
     });
 
     private pieEntry = this.RULE('pieEntry', () => {
