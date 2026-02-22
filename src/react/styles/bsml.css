@@ -1,0 +1,23 @@
+/* BSML component CSS variables */
+:root {
+    --bsml-asset-bg: #eff6ff;
+    --bsml-liability-bg: #fefce8;
+    --bsml-equity-bg: #f0fdf4;
+    --bsml-border-color: #1e293b;
+    --bsml-category-label-color: rgba(30, 41, 59, 0.2);
+    --bsml-header-footer-color: rgba(30, 41, 59, 0.35);
+    --bsml-imbalance-bg: rgba(239, 68, 68, 0.4);
+    --bsml-imbalance-fg: #7f1d1d;
+    --bsml-rounding-bg: repeating-linear-gradient(45deg,
+            transparent,
+            transparent 4px,
+            rgba(100, 116, 139, 0.15) 4px,
+            rgba(100, 116, 139, 0.15) 8px);
+}
+
+/* Invisible handles — used on annotation nodes (NoteNode, CalloutNode) */
+.bsml-invisible-handle {
+    opacity: 0;
+    border: none;
+    background: transparent;
+}

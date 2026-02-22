@@ -18,10 +18,21 @@ export interface BalanceSheetNodeData {
     ast: BalanceSheetNode;
     scaleFactor: number;
     totalHeight: number;
+    /** Pre-calculated pixel width for Dagre layout (set by Transformer) */
+    calculatedWidth?: number;
+    /** Pre-calculated pixel height for Dagre layout (set by Transformer) */
+    calculatedHeight?: number;
     padding?: {
         side: 'assets' | 'liabilities_equity';
         type: 'imbalance' | 'rounding';
         amount: number;
+    };
+    labels?: {
+        assets?: string;
+        liabilities?: string;
+        equity?: string;
+        totalAssets?: string;
+        totalLiabilitiesEquity?: string;
     };
 }
 
@@ -30,6 +41,10 @@ export interface NoteNodeData {
     [key: string]: unknown;
     ast: NoteNode;
     text: string;
+    /** Pre-calculated pixel width for Dagre layout */
+    calculatedWidth?: number;
+    /** Pre-calculated pixel height for Dagre layout */
+    calculatedHeight?: number;
 }
 
 /** Payload for 'callout' custom node */
@@ -38,4 +53,8 @@ export interface CalloutNodeData {
     ast: CalloutNode;
     sourceAlias: string;
     pieData: Record<string, number>;
+    /** Pre-calculated pixel width for Dagre layout */
+    calculatedWidth?: number;
+    /** Pre-calculated pixel height for Dagre layout */
+    calculatedHeight?: number;
 }

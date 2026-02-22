@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { transform } from '../../src/transformer/index.js';
 import type { BSMLDocument } from '../../src/ast/types.js';
 import type { BSMLReactFlowData } from '../../src/transformer/types.js';
+import { BS_NODE_WIDTH } from '../../src/constants/layout.js';
 import {
     fixture1_ast,
     fixture2_ast,
@@ -59,6 +60,8 @@ const orderFixtureExpected: BSMLReactFlowData = {
                 ast: orderFixtureInput.balanceSheets[0],
                 scaleFactor: 0.6,
                 totalHeight: 600,
+                calculatedWidth: BS_NODE_WIDTH,
+                calculatedHeight: 660, // 600 (bar) + 40 (header) + 20 (padding)
                 padding: {
                     side: "liabilities_equity",
                     type: "imbalance",
@@ -72,7 +75,9 @@ const orderFixtureExpected: BSMLReactFlowData = {
             position: { x: 0, y: 0 },
             data: {
                 ast: orderFixtureInput.notes[0],
-                text: "Debt ratio needs adjustment."
+                text: "Debt ratio needs adjustment.",
+                calculatedWidth: 200,
+                calculatedHeight: 100,
             }
         },
         {
@@ -82,7 +87,9 @@ const orderFixtureExpected: BSMLReactFlowData = {
             data: {
                 ast: orderFixtureInput.callouts[0],
                 sourceAlias: "cash",
-                pieData: { "USD": 600, "JPY": 400 }
+                pieData: { "USD": 600, "JPY": 400 },
+                calculatedWidth: 250,
+                calculatedHeight: 250,
             }
         }
     ],
@@ -116,6 +123,18 @@ describe('BSML Transformer', () => {
     it('order fixture: imbalance, explicit dotted edge, implicit callout edge', () => {
         const result = transform(orderFixtureInput);
         expect(result).toEqual(orderFixtureExpected);
+    });
+
+    it('calculatedHeight = (maxSideValue * scaleFactor) + BS_HEADER_HEIGHT + BS_PADDING_BOTTOM', () => {
+        // orderFixture: maxSideValue = 1000 (assets), scaleFactor = 0.6
+        // contentHeight = 1000 * 0.6 = 600
+        // calculatedHeight = 600 + 40 + 20 = 660
+        // calculatedWidth = BS_NODE_WIDTH (constant)
+        const result = transform(orderFixtureInput);
+        const bsNode = result.nodes.find((n) => n.type === 'balanceSheet');
+        expect(bsNode).toBeDefined();
+        expect((bsNode!.data as any).calculatedWidth).toBe(BS_NODE_WIDTH);
+        expect((bsNode!.data as any).calculatedHeight).toBe(660);
     });
 
     it('fixture 3: balanced BS produces no padding', () => {
@@ -189,6 +208,22 @@ describe('BSML Transformer', () => {
         expect(solidEdge!.label).toBe('貸付');
         // solid edges should not have animated/strokeDasharray
         expect(solidEdge!.animated).toBeUndefined();
+    });
+
+    it('note node has calculatedWidth=200, calculatedHeight=100', () => {
+        const result = transform(orderFixtureInput);
+        const noteNode = result.nodes.find((n) => n.type === 'note');
+        expect(noteNode).toBeDefined();
+        expect((noteNode!.data as any).calculatedWidth).toBe(200);
+        expect((noteNode!.data as any).calculatedHeight).toBe(100);
+    });
+
+    it('callout node has calculatedWidth=250, calculatedHeight=250', () => {
+        const result = transform(orderFixtureInput);
+        const calloutNode = result.nodes.find((n) => n.type === 'callout');
+        expect(calloutNode).toBeDefined();
+        expect((calloutNode!.data as any).calculatedWidth).toBe(250);
+        expect((calloutNode!.data as any).calculatedHeight).toBe(250);
     });
 
     it('fixture 2: callout generates implicit edge + callout node', () => {

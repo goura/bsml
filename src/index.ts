@@ -16,3 +16,4 @@ export type {
     NoteNodeData,
     CalloutNodeData,
 } from './transformer/index.js';
+export { BalanceSheetNode as BalanceSheetNodeComponent } from './react/components/BalanceSheetNode.js';

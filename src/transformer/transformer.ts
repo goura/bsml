@@ -3,72 +3,86 @@
 
 import type { Node, Edge } from '@xyflow/react';
 import type { BSMLDocument, TreeNode } from '../ast/types.js';
+import {
+    BS_HEADER_HEIGHT,
+    BS_NODE_WIDTH,
+    BS_PADDING_BOTTOM,
+    CALLOUT_NODE_HEIGHT,
+    CALLOUT_NODE_WIDTH,
+    DEFAULT_MAX_NODE_HEIGHT,
+    NOTE_NODE_HEIGHT,
+    NOTE_NODE_WIDTH,
+} from '../constants/layout.js';
 import type { BSMLReactFlowData, BalanceSheetNodeData, NoteNodeData, CalloutNodeData } from './types.js';
 
-/**
- * Recursively sums all leaf `ItemNode.amount` values in a tree.
- * CategoryNodes have no amount — only their children contribute.
- */
-function sumTreeAmounts(trees: TreeNode[]): number {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function sumTree(nodes: TreeNode[]): number {
     let total = 0;
-    for (const node of trees) {
-        if (node.type === 'item') {
-            total += node.amount;
+    for (const n of nodes) {
+        if (n.type === 'item') {
+            total += n.amount;
         } else {
-            total += sumTreeAmounts(node.children);
+            total += sumTree(n.children);
         }
     }
     return total;
 }
 
+// ── Main Transformer ──────────────────────────────────────────────────────────
+
 /**
- * Transforms a BSMLDocument AST into React Flow–compatible nodes and edges.
+ * Transform BSML AST into React Flow compatible nodes + edges.
  *
- * @param ast - The parsed BSMLDocument
+ * @param ast - Parsed BSML AST document
  * @param maxNodeHeight - Maximum pixel height for the tallest balance sheet node (default 600)
  */
-export function transform(ast: BSMLDocument, maxNodeHeight = 600): BSMLReactFlowData {
-    // ── 3.1 Per-BS Totals ──────────────────────────────────────────────
-    const bsTotals = ast.balanceSheets.map((bs) => {
-        const totalAssets = sumTreeAmounts(bs.assets);
-        const totalLiabilitiesAndEquity =
-            sumTreeAmounts(bs.liabilities) + sumTreeAmounts(bs.equity);
-        const maxSideValue = Math.max(totalAssets, totalLiabilitiesAndEquity);
-        return { bs, totalAssets, totalLiabilitiesAndEquity, maxSideValue };
+export function transform(ast: BSMLDocument, maxNodeHeight = DEFAULT_MAX_NODE_HEIGHT): BSMLReactFlowData {
+    const nodes: Node[] = [];
+    const edges: Edge[] = [];
+
+    // 1) Calculate totals and global max
+    const totals = ast.balanceSheets.map((bs) => {
+        const assetsTotal = sumTree(bs.assets);
+        const liabilitiesTotal = sumTree(bs.liabilities);
+        const equityTotal = sumTree(bs.equity);
+        const liabEqTotal = liabilitiesTotal + equityTotal;
+        const maxSide = Math.max(assetsTotal, liabEqTotal);
+        return { bs, assetsTotal, liabilitiesTotal, equityTotal, liabEqTotal, maxSide };
     });
 
-    // ── 3.2 Global Scaling ─────────────────────────────────────────────
-    const globalMaxAmount = Math.max(...bsTotals.map((t) => t.maxSideValue), 0);
-    const scaleFactor =
-        globalMaxAmount === 0 || Number.isNaN(globalMaxAmount)
-            ? 0
-            : maxNodeHeight / globalMaxAmount;
+    const globalMax = totals.length > 0 ? Math.max(...totals.map((t) => t.maxSide)) : 0;
+    const scaleFactor = globalMax === 0 ? 0 : maxNodeHeight / globalMax;
 
-    // ── 3.3 Node Generation ────────────────────────────────────────────
-    const nodes: Node[] = [];
+    // 2) Create balanceSheet nodes
+    for (const t of totals) {
+        const { bs, assetsTotal, liabEqTotal, maxSide } = t;
 
-    for (const { bs, totalAssets, totalLiabilitiesAndEquity, maxSideValue } of bsTotals) {
-        const difference = Math.abs(totalAssets - totalLiabilitiesAndEquity);
-
-        let padding: BalanceSheetNodeData['padding'];
-        if (difference > bs.config.tolerance) {
-            padding = {
-                side: totalAssets < totalLiabilitiesAndEquity ? 'assets' : 'liabilities_equity',
-                type: 'imbalance',
-                amount: difference,
-            };
-        } else if (difference > 0) {
-            padding = {
-                side: totalAssets < totalLiabilitiesAndEquity ? 'assets' : 'liabilities_equity',
-                type: 'rounding',
-                amount: difference,
-            };
+        let padding: BalanceSheetNodeData['padding'] | undefined = undefined;
+        const diff = Math.abs(assetsTotal - liabEqTotal);
+        if (diff > 0) {
+            if (diff > bs.config.tolerance) {
+                padding = {
+                    side: assetsTotal < liabEqTotal ? 'assets' : 'liabilities_equity',
+                    type: 'imbalance',
+                    amount: diff,
+                };
+            } else {
+                padding = {
+                    side: assetsTotal < liabEqTotal ? 'assets' : 'liabilities_equity',
+                    type: 'rounding',
+                    amount: diff,
+                };
+            }
         }
 
+        const contentHeight = maxSide * scaleFactor;
         const data: BalanceSheetNodeData = {
             ast: bs,
             scaleFactor,
-            totalHeight: maxSideValue * scaleFactor,
+            totalHeight: contentHeight,
+            calculatedWidth: BS_NODE_WIDTH,
+            calculatedHeight: contentHeight + BS_HEADER_HEIGHT + BS_PADDING_BOTTOM,
             padding,
         };
 
@@ -80,8 +94,14 @@ export function transform(ast: BSMLDocument, maxNodeHeight = 600): BSMLReactFlow
         });
     }
 
+    // 3) Create note nodes
     for (const note of ast.notes) {
-        const data: NoteNodeData = { ast: note, text: note.text };
+        const data: NoteNodeData = {
+            ast: note,
+            text: note.text,
+            calculatedWidth: NOTE_NODE_WIDTH,
+            calculatedHeight: NOTE_NODE_HEIGHT,
+        };
         nodes.push({
             id: note.id,
             type: 'note',
@@ -90,11 +110,33 @@ export function transform(ast: BSMLDocument, maxNodeHeight = 600): BSMLReactFlow
         });
     }
 
-    for (const callout of ast.callouts) {
+    // 4) Create explicit edges
+    for (const [idx, e] of ast.edges.entries()) {
+        const dotted = e.style === 'dotted';
+        const sourceAlias = e.source.alias ?? 'root';
+        const targetAlias = e.target.alias ?? 'root';
+        edges.push({
+            id: `edge-${e.source.nodeId}-${sourceAlias}-to-${e.target.nodeId}-${targetAlias}-index-${idx}`,
+            source: e.source.nodeId,
+            sourceHandle: e.source.alias ? `handle-${e.source.nodeId}-${e.source.alias}` : undefined,
+            target: e.target.nodeId,
+            targetHandle: e.target.alias ? `handle-${e.target.nodeId}-${e.target.alias}` : undefined,
+            label: e.label,
+            animated: dotted || undefined,
+            style: dotted
+                ? { strokeDasharray: '5,5' }
+                : undefined,
+        });
+    }
+
+    // 5) Create callout nodes (+ implicit edge from source handle)
+    for (const [idx, callout] of ast.callouts.entries()) {
         const data: CalloutNodeData = {
             ast: callout,
             sourceAlias: callout.source.alias,
             pieData: callout.data,
+            calculatedWidth: CALLOUT_NODE_WIDTH,
+            calculatedHeight: CALLOUT_NODE_HEIGHT,
         };
         nodes.push({
             id: `callout-${callout.source.bsId}-${callout.source.alias}`,
@@ -102,51 +144,16 @@ export function transform(ast: BSMLDocument, maxNodeHeight = 600): BSMLReactFlow
             position: { x: 0, y: 0 },
             data,
         });
-    }
 
-    // ── 3.4 Edge Generation ────────────────────────────────────────────
-    const edges: Edge[] = [];
-
-    // Explicit edges (from AST)
-    ast.edges.forEach((edge, i) => {
-        const srcAlias = edge.source.alias || 'root';
-        const tgtAlias = edge.target.alias || 'root';
-
-        const rfEdge: Edge = {
-            id: `edge-${edge.source.nodeId}-${srcAlias}-to-${edge.target.nodeId}-${tgtAlias}-index-${i}`,
-            source: edge.source.nodeId,
-            target: edge.target.nodeId,
-            sourceHandle: edge.source.alias
-                ? `handle-${edge.source.nodeId}-${edge.source.alias}`
-                : undefined,
-            targetHandle: edge.target.alias
-                ? `handle-${edge.target.nodeId}-${edge.target.alias}`
-                : undefined,
-        };
-
-        if (edge.label) {
-            rfEdge.label = edge.label;
-        }
-
-        if (edge.style === 'dotted') {
-            rfEdge.animated = true;
-            rfEdge.style = { strokeDasharray: '5,5' };
-        }
-
-        edges.push(rfEdge);
-    });
-
-    // Implicit edges (for callouts)
-    ast.callouts.forEach((callout, j) => {
         edges.push({
-            id: `edge-callout-${callout.source.bsId}-${callout.source.alias}-index-${j}`,
+            id: `edge-callout-${callout.source.bsId}-${callout.source.alias}-index-${idx}`,
             source: callout.source.bsId,
-            target: `callout-${callout.source.bsId}-${callout.source.alias}`,
             sourceHandle: `handle-${callout.source.bsId}-${callout.source.alias}`,
+            target: `callout-${callout.source.bsId}-${callout.source.alias}`,
             animated: false,
             style: { stroke: '#94a3b8' },
         });
-    });
+    }
 
     return { nodes, edges };
 }
