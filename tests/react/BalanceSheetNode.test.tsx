@@ -6,14 +6,22 @@ import React from 'react';
 
 // Mock @xyflow/react so Handle renders as a plain div (no Zustand store needed)
 mock.module('@xyflow/react', () => ({
-    Handle: ({ id, 'data-testid': testId, style }: any) =>
-        React.createElement('div', { id, 'data-testid': testId, style }),
+    Handle: ({ id, 'data-testid': testId, style, position, type, className }: any) =>
+        React.createElement('div', {
+            id,
+            'data-testid': testId,
+            style,
+            'data-position': position,
+            'data-handle-type': type,
+            className,
+        }),
     Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
 }));
 
 import { render, screen, cleanup } from '@testing-library/react';
 import { BalanceSheetNode } from '../../src/react/components/BalanceSheetNode.js';
 import type { BalanceSheetNodeData } from '../../src/transformer/types.js';
+import { MIN_ROW_HEIGHT } from '../../src/constants/layout.js';
 
 afterEach(cleanup);
 
@@ -43,11 +51,13 @@ const mockData: BalanceSheetNodeData = {
     totalHeight: 200,
     padding: { side: 'liabilities_equity', type: 'imbalance', amount: 20 },
     labels: {
-        assets: 'Assets',
-        liabilities: 'Liabilities',
-        equity: 'Equity',
-        totalAssets: 'Total Assets',
-        totalLiabilitiesEquity: 'Total Liabilities & Equity',
+        assetsHeader: 'Assets',
+        liabilitiesHeader: 'Liabilities',
+        equityHeader: 'Equity',
+        assetsTotal: 'Total Assets',
+        liabilitiesTotal: 'Total Liabilities',
+        equityTotal: 'Total Equity',
+        liabilitiesEquityTotal: 'Total Liabilities & Equity',
     },
 };
 
@@ -89,6 +99,7 @@ describe('BalanceSheetNode', () => {
 
         // ── Box sizing must be border-box ─────────────────────────────────────
         expect(cashStyle.boxSizing).toBe('border-box');
+        expect(cashStyle.flexShrink).toBe('0');
 
         // ── debt item ─────────────────────────────────────────────────────────
         const debtEl = screen.getByTestId('item-debt');
@@ -98,6 +109,7 @@ describe('BalanceSheetNode', () => {
         expect(zeroOrAbsent(debtEl.style.paddingTop)).toBe(true);
         expect(zeroOrAbsent(debtEl.style.paddingBottom)).toBe(true);
         expect(debtEl.style.boxSizing).toBe('border-box');
+        expect(debtEl.style.flexShrink).toBe('0');
     });
 
     // Test 2: Ledger Typography & Number Formatting
@@ -112,6 +124,36 @@ describe('BalanceSheetNode', () => {
         const debtEl = screen.getByTestId('item-debt');
         expect(debtEl.textContent).toContain('Debt');
         expect(debtEl.textContent).toContain('80');
+    });
+
+    test('T2c: renders four subtotal rows with labels and amounts', () => {
+        render(<BalanceSheetNode {...makeProps(mockData)} />);
+        expect(screen.getByTestId('subtotal-assets').textContent).toContain('Total Assets');
+        expect(screen.getByTestId('subtotal-assets').textContent).toContain('100');
+        expect(screen.getByTestId('subtotal-liabilities').textContent).toContain('Total Liabilities');
+        expect(screen.getByTestId('subtotal-liabilities').textContent).toContain('80');
+        expect(screen.getByTestId('subtotal-equity').textContent).toContain('Total Equity');
+        expect(screen.getByTestId('subtotal-equity').textContent).toContain('0');
+        expect(screen.getByTestId('subtotal-liabilities-equity').textContent).toContain('Total Liabilities & Equity');
+        expect(screen.getByTestId('subtotal-liabilities-equity').textContent).toContain('80');
+    });
+
+    test('T2b: tiny amount row respects MIN_ROW_HEIGHT clamp', () => {
+        const tinyData: BalanceSheetNodeData = {
+            ...mockData,
+            scaleFactor: 0.1,
+            ast: {
+                ...mockData.ast,
+                assets: [{ type: 'item', alias: 'tiny_cash', label: 'Tiny Cash', amount: 1 }],
+                liabilities: [],
+                equity: [],
+            },
+            padding: undefined,
+        };
+
+        render(<BalanceSheetNode {...makeProps(tinyData)} />);
+        const tinyEl = screen.getByTestId('item-tiny_cash');
+        expect(tinyEl.style.height).toBe(`${MIN_ROW_HEIGHT}px`);
     });
 
     // Test 3: Column Rendering & Imbalance Padding Injection
@@ -152,7 +194,7 @@ describe('BalanceSheetNode', () => {
     });
 
     // Test 6: B/S Structural Elements (Configurable Labels)
-    test('T6: section headers and total footers are rendered from labels prop', () => {
+    test('T6: section headers and subtotal labels are rendered from labels prop', () => {
         render(<BalanceSheetNode {...makeProps(mockData)} />);
 
         // Section headers  
@@ -160,8 +202,32 @@ describe('BalanceSheetNode', () => {
         expect(screen.getByText('Liabilities')).toBeDefined();
         expect(screen.getByText('Equity')).toBeDefined();
 
-        // Total footers
+        // Totals are in-bar rows (no outer footers)
         expect(screen.getByText('Total Assets')).toBeDefined();
         expect(screen.getByText('Total Liabilities & Equity')).toBeDefined();
+    });
+
+    test('T7: assets item handles are on left; liabilities/equity item handles are on right', () => {
+        const { container } = render(<BalanceSheetNode {...makeProps(mockData)} />);
+
+        const cashHandles = Array.from(container.querySelectorAll('#handle-TestBS-cash'));
+        expect(cashHandles.length).toBeGreaterThan(0);
+        for (const el of cashHandles) {
+            expect((el as HTMLElement).dataset.position).toBe('left');
+            expect(el.className).toContain('bsml-invisible-handle');
+        }
+
+        const debtHandles = Array.from(container.querySelectorAll('#handle-TestBS-debt'));
+        expect(debtHandles.length).toBeGreaterThan(0);
+        for (const el of debtHandles) {
+            expect((el as HTMLElement).dataset.position).toBe('right');
+            expect(el.className).toContain('bsml-invisible-handle');
+        }
+    });
+
+    test('T8: renders root handles for alias-less edges', () => {
+        const { container } = render(<BalanceSheetNode {...makeProps(mockData)} />);
+        expect(container.querySelector('#handle-TestBS-root-in')).not.toBeNull();
+        expect(container.querySelector('#handle-TestBS-root-out')).not.toBeNull();
     });
 });

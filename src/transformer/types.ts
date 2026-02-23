@@ -2,6 +2,7 @@
 
 import type { Node, Edge } from '@xyflow/react';
 import type { BalanceSheetNode, NoteNode, CalloutNode } from '../ast/types.js';
+import type { BSMLLabelSet } from '../constants/labels.js';
 
 export interface BSMLReactFlowData {
     nodes: Node[];
@@ -27,13 +28,7 @@ export interface BalanceSheetNodeData {
         type: 'imbalance' | 'rounding';
         amount: number;
     };
-    labels?: {
-        assets?: string;
-        liabilities?: string;
-        equity?: string;
-        totalAssets?: string;
-        totalLiabilitiesEquity?: string;
-    };
+    labels?: BSMLLabelSet;
 }
 
 /** Payload for 'note' custom node */

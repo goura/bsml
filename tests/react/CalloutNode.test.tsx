@@ -69,4 +69,10 @@ describe('CalloutNode', () => {
         const spans = screen.getAllByText(/0\.0%/);
         expect(spans.length).toBe(2);
     });
+
+    test('T7: has explicit target-left and target-right handles', () => {
+        const { container } = render(<CalloutNode {...makeProps()} />);
+        expect(container.querySelector('#target-left')).not.toBeNull();
+        expect(container.querySelector('#target-right')).not.toBeNull();
+    });
 });

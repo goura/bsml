@@ -7,6 +7,7 @@ import { DEFAULT_BSML } from './defaultCode.js';
 
 const MIN_EDITOR_WIDTH_PERCENT = 20;
 const MAX_EDITOR_WIDTH_PERCENT = 80;
+type DemoLocale = 'default' | 'ja';
 
 export default function App() {
     const [code, setCode] = useState<string>(DEFAULT_BSML);
@@ -14,6 +15,7 @@ export default function App() {
     const [error, setError] = useState<string | null>(null);
     const [editorWidthPercent, setEditorWidthPercent] = useState<number>(50);
     const [isResizing, setIsResizing] = useState<boolean>(false);
+    const [locale, setLocale] = useState<DemoLocale>('default');
 
     // Track whether we've produced at least one valid graph
     const lastGoodData = useRef<BSMLReactFlowData | null>(null);
@@ -22,7 +24,11 @@ export default function App() {
     useEffect(() => {
         try {
             const ast = parseBSML(code);
-            const data = transform(ast);
+            const astForRender = structuredClone(ast);
+            for (const balanceSheet of astForRender.balanceSheets) {
+                balanceSheet.config.lang = locale;
+            }
+            const data = transform(astForRender);
             lastGoodData.current = data;
             setGraphData(data);
             setError(null);
@@ -31,7 +37,7 @@ export default function App() {
             setError(message);
             // Keep the previous valid graph on screen
         }
-    }, [code]);
+    }, [code, locale]);
 
     const displayData = graphData ?? lastGoodData.current;
     const handleDividerPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -94,6 +100,17 @@ export default function App() {
 
             {/* ── Right Pane: Canvas ───────────────────────────── */}
             <div className="pane pane-canvas">
+                <div className="locale-switcher">
+                    <label htmlFor="locale-select">Locale</label>
+                    <select
+                        id="locale-select"
+                        value={locale}
+                        onChange={(event) => setLocale(event.target.value as DemoLocale)}
+                    >
+                        <option value="default">default</option>
+                        <option value="ja">ja</option>
+                    </select>
+                </div>
                 {displayData ? (
                     <BSMLCanvas data={displayData} />
                 ) : (

@@ -61,4 +61,22 @@ pie ExampleCorp {
 `;
         expect(() => parseBSML(input)).toThrow(/Parser errors:/);
     });
+
+    it('parses optional config.lang string', () => {
+        const input = `
+BalanceSheet "LangCorp" {
+  config {
+    tolerance = 0
+    currency = "USD"
+    unit = "M"
+    lang = "ja"
+  }
+  Assets {}
+  Liabilities {}
+  Equity {}
+}
+`;
+        const result = parseBSML(input);
+        expect(result.balanceSheets[0].config.lang).toBe('ja');
+    });
 });

@@ -5,6 +5,8 @@ import { Handle, Position } from '@xyflow/react';
 import type { NodeProps, Node } from '@xyflow/react';
 import type { BalanceSheetNodeData } from '../../transformer/types.js';
 import type { TreeNode } from '../../ast/types.js';
+import { BS_HEADER_HEIGHT, MIN_ROW_HEIGHT } from '../../constants/layout.js';
+import { LABELS_BY_LANG, isCompleteLabelSet, normalizeLang } from '../../constants/labels.js';
 
 // ── CSS variables (fallbacks for environments without the stylesheet) ──────────
 const colors = {
@@ -31,6 +33,30 @@ function formatAmount(amount: number, currency: string): string {
     }
 }
 
+function sumTreeAmount(nodes: TreeNode[]): number {
+    let total = 0;
+    for (const node of nodes) {
+        if (node.type === 'item') {
+            total += node.amount;
+        } else {
+            total += sumTreeAmount(node.children);
+        }
+    }
+    return total;
+}
+
+function sumRenderedTreeHeight(nodes: TreeNode[], scaleFactor: number): number {
+    let total = 0;
+    for (const node of nodes) {
+        if (node.type === 'item') {
+            total += Math.max(node.amount * scaleFactor, MIN_ROW_HEIGHT);
+        } else {
+            total += sumRenderedTreeHeight(node.children, scaleFactor);
+        }
+    }
+    return total;
+}
+
 // ── TreeNodeRenderer (recursive) ─────────────────────────────────────────────
 interface TreeNodeRendererProps {
     nodes: TreeNode[];
@@ -47,11 +73,14 @@ function TreeNodeRenderer({ nodes, scaleFactor, rootAstId, section }: TreeNodeRe
                 ? colors.liabilityBg
                 : colors.equityBg;
 
+    const handlePosition = section === 'assets' ? Position.Left : Position.Right;
+    const handleOffset = handlePosition === Position.Left ? { left: 0 } : { right: 0 };
+
     return (
         <>
             {nodes.map((node) => {
                 if (node.type === 'item') {
-                    const heightPx = node.amount * scaleFactor;
+                    const heightPx = Math.max(node.amount * scaleFactor, MIN_ROW_HEIGHT);
                     return (
                         <div
                             key={node.alias}
@@ -60,6 +89,7 @@ function TreeNodeRenderer({ nodes, scaleFactor, rootAstId, section }: TreeNodeRe
                                 ...boxBorder,
                                 height: `${heightPx}px`,
                                 display: 'flex',
+                                flexShrink: 0,
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 padding: '0 8px',
@@ -72,10 +102,16 @@ function TreeNodeRenderer({ nodes, scaleFactor, rootAstId, section }: TreeNodeRe
                         >
                             <Handle
                                 type="target"
-                                position={Position.Left}
+                                position={handlePosition}
                                 id={`handle-${rootAstId}-${node.alias}`}
                                 data-testid={`handle-${node.alias}`}
-                                style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)' }}
+                                className="bsml-invisible-handle"
+                                style={{
+                                    position: 'absolute',
+                                    ...handleOffset,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                }}
                             />
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                                 {node.label ?? node.alias}
@@ -85,10 +121,16 @@ function TreeNodeRenderer({ nodes, scaleFactor, rootAstId, section }: TreeNodeRe
                             </span>
                             <Handle
                                 type="source"
-                                position={Position.Right}
+                                position={handlePosition}
                                 id={`handle-${rootAstId}-${node.alias}`}
                                 data-testid={`handle-${node.alias}`}
-                                style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
+                                className="bsml-invisible-handle"
+                                style={{
+                                    position: 'absolute',
+                                    ...handleOffset,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                }}
                             />
                         </div>
                     );
@@ -103,6 +145,7 @@ function TreeNodeRenderer({ nodes, scaleFactor, rootAstId, section }: TreeNodeRe
                             ...boxBorder,
                             display: 'flex',
                             flexDirection: 'column',
+                            flexShrink: 0,
                             border: `1px solid ${colors.border}`,
                             position: 'relative',
                         }}
@@ -139,40 +182,30 @@ function TreeNodeRenderer({ nodes, scaleFactor, rootAstId, section }: TreeNodeRe
     );
 }
 
-// ── Floating overlay helper (headers / footers) ───────────────────────────────
-function FloatingLabel({ text, position }: { text: string; position: 'top' | 'bottom' }) {
-    const style: React.CSSProperties = {
-        position: 'absolute',
-        [position]: 2,
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        fontSize: '9px',
-        fontWeight: 600,
-        color: colors.headerFooter,
-        pointerEvents: 'none',
-        zIndex: 2,
-        userSelect: 'none',
-    };
-    return <span style={style}>{text}</span>;
-}
-
 // ── Padding block (imbalance / rounding) ─────────────────────────────────────
 interface PaddingBlockProps {
-    amount: number;
-    scaleFactor: number;
+    heightPx: number;
     type: 'imbalance' | 'rounding';
+    dataTestId?: string;
+    invisible?: boolean;
 }
 
-function PaddingBlock({ amount, scaleFactor, type }: PaddingBlockProps) {
-    const heightPx = amount * scaleFactor;
+function PaddingBlock({ heightPx, type, dataTestId, invisible }: PaddingBlockProps) {
     const style: React.CSSProperties =
-        type === 'imbalance'
+        invisible
+            ? {
+                ...boxBorder,
+                height: `${heightPx}px`,
+                flexShrink: 0,
+                background: 'transparent',
+            }
+            : type === 'imbalance'
             ? {
                 ...boxBorder,
                 height: `${heightPx}px`,
                 backgroundColor: 'rgba(239,68,68,0.4)',
                 display: 'flex',
+                flexShrink: 0,
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '11px',
@@ -182,45 +215,96 @@ function PaddingBlock({ amount, scaleFactor, type }: PaddingBlockProps) {
             : {
                 ...boxBorder,
                 height: `${heightPx}px`,
+                flexShrink: 0,
                 background:
                     'repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(100,116,139,0.15) 4px,rgba(100,116,139,0.15) 8px)',
             };
 
     return (
-        <div data-testid={`padding-${type}`} style={style}>
-            {type === 'imbalance' ? 'IMBALANCE' : null}
+        <div data-testid={dataTestId ?? `padding-${type}`} style={style}>
+            {!invisible && type === 'imbalance' ? 'IMBALANCE' : null}
         </div>
     );
 }
 
-// ── Default labels ────────────────────────────────────────────────────────────
-const DEFAULT_LABELS = {
-    assets: 'Assets',
-    liabilities: 'Liabilities',
-    equity: 'Equity',
-    totalAssets: 'Total Assets',
-    totalLiabilitiesEquity: 'Total Liabilities & Equity',
-} as const;
+function SubtotalRow({ label, amount, testId }: { label: string; amount: number; testId: string }) {
+    return (
+        <div
+            data-testid={testId}
+            style={{
+                ...boxBorder,
+                height: `${MIN_ROW_HEIGHT}px`,
+                display: 'flex',
+                flexShrink: 0,
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0 8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                borderTop: `1px solid ${colors.border}`,
+                backgroundColor: 'rgba(148,163,184,0.12)',
+            }}
+        >
+            <span>{label}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAmount(amount, '')}</span>
+        </div>
+    );
+}
 
 // ── Root BalanceSheetNode ─────────────────────────────────────────────────────
 type BSFlowNode = Node<BalanceSheetNodeData, 'balanceSheet'>;
 
 export function BalanceSheetNode({ data }: NodeProps<BSFlowNode>) {
     const { ast, scaleFactor, padding, labels } = data as BalanceSheetNodeData;
+    const assetsSubtotal = sumTreeAmount(ast.assets);
+    const liabilitiesSubtotal = sumTreeAmount(ast.liabilities);
+    const equitySubtotal = sumTreeAmount(ast.equity);
+    const renderedAssetsHeight = sumRenderedTreeHeight(ast.assets, scaleFactor);
+    const renderedLiabilitiesHeight = sumRenderedTreeHeight(ast.liabilities, scaleFactor);
+    const renderedEquityHeight = sumRenderedTreeHeight(ast.equity, scaleFactor);
+    const renderedPaddingHeight = padding ? padding.amount * scaleFactor : 0;
 
-    const L = {
-        assets: labels?.assets ?? DEFAULT_LABELS.assets,
-        liabilities: labels?.liabilities ?? DEFAULT_LABELS.liabilities,
-        equity: labels?.equity ?? DEFAULT_LABELS.equity,
-        totalAssets: labels?.totalAssets ?? DEFAULT_LABELS.totalAssets,
-        totalLiabilitiesEquity: labels?.totalLiabilitiesEquity ?? DEFAULT_LABELS.totalLiabilitiesEquity,
-    };
+    const assetsNaturalHeight =
+        renderedAssetsHeight + (padding?.side === 'assets' ? renderedPaddingHeight : 0) + MIN_ROW_HEIGHT;
+    const liabilitiesNaturalHeight = renderedLiabilitiesHeight + MIN_ROW_HEIGHT;
+    const equityNaturalHeight =
+        renderedEquityHeight + (padding?.side === 'liabilities_equity' ? renderedPaddingHeight : 0) + MIN_ROW_HEIGHT;
+    const rightNaturalHeight = liabilitiesNaturalHeight + equityNaturalHeight + MIN_ROW_HEIGHT;
+
+    const assetsSlackHeight = Math.max(data.totalHeight - assetsNaturalHeight, 0);
+    const rightSlackHeight = Math.max(data.totalHeight - rightNaturalHeight, 0);
+    const equitySlackHeight = rightSlackHeight;
+
+    const langLabels = LABELS_BY_LANG[normalizeLang(ast.config.lang)];
+    const L = isCompleteLabelSet(labels) ? labels : langLabels;
 
     const colStyle: React.CSSProperties = {
         ...boxBorder,
         display: 'flex',
         flexDirection: 'column',
         width: 256,
+        flexShrink: 0,
+    };
+
+    const headerStyle: React.CSSProperties = {
+        ...boxBorder,
+        height: `${BS_HEADER_HEIGHT}px`,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '10px',
+        fontWeight: 600,
+        color: colors.headerFooter,
+        userSelect: 'none',
+    };
+
+    const barAreaStyle: React.CSSProperties = {
+        ...boxBorder,
+        height: `${data.totalHeight}px`,
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
         position: 'relative',
     };
 
@@ -233,65 +317,106 @@ export function BalanceSheetNode({ data }: NodeProps<BSFlowNode>) {
                 border: `2px solid ${colors.border}`,
                 backgroundColor: '#ffffff',
                 boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                position: 'relative',
             }}
         >
+            {/* Root handles: used for alias-less inter-node edges (e.g., Company --> Subsidiary) */}
+            <Handle
+                type="target"
+                position={Position.Left}
+                id={`handle-${ast.id}-root-in`}
+                className="bsml-invisible-handle"
+                style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)' }}
+            />
+            <Handle
+                type="source"
+                position={Position.Right}
+                id={`handle-${ast.id}-root-out`}
+                className="bsml-invisible-handle"
+                style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
+            />
+
             {/* LEFT COLUMN: Assets */}
             <div
                 data-testid="col-assets"
                 style={{ ...colStyle, borderRight: `2px solid ${colors.border}` }}
             >
-                <FloatingLabel text={L.assets} position="top" />
-                <TreeNodeRenderer
-                    nodes={ast.assets}
-                    scaleFactor={scaleFactor}
-                    rootAstId={ast.id}
-                    section="assets"
-                />
-                {padding?.side === 'assets' && (
-                    <PaddingBlock amount={padding.amount} scaleFactor={scaleFactor} type={padding.type} />
-                )}
-                <FloatingLabel text={L.totalAssets} position="bottom" />
+                <div style={headerStyle}>{L.assetsHeader}</div>
+                <div style={barAreaStyle}>
+                    <TreeNodeRenderer
+                        nodes={ast.assets}
+                        scaleFactor={scaleFactor}
+                        rootAstId={ast.id}
+                        section="assets"
+                    />
+                    {(padding?.side === 'assets' || assetsSlackHeight > 0) && (
+                        <PaddingBlock
+                            heightPx={(padding?.side === 'assets' ? renderedPaddingHeight : 0) + assetsSlackHeight}
+                            type={padding?.side === 'assets' ? padding.type : 'rounding'}
+                            invisible={padding?.side !== 'assets'}
+                            dataTestId={padding?.side === 'assets' ? `padding-${padding.type}` : 'padding-assets-slack'}
+                        />
+                    )}
+                    <SubtotalRow label={L.assetsTotal} amount={assetsSubtotal} testId="subtotal-assets" />
+                </div>
             </div>
 
             {/* RIGHT COLUMN: Liabilities & Equity */}
             <div data-testid="col-liabilities-equity" style={colStyle}>
-                <FloatingLabel text={L.liabilities} position="top" />
-                <TreeNodeRenderer
-                    nodes={ast.liabilities}
-                    scaleFactor={scaleFactor}
-                    rootAstId={ast.id}
-                    section="liabilities"
-                />
-                {/* Equity sub-section label — always rendered, zero-height */}
-                <div style={{ position: 'relative', height: 0, overflow: 'visible' }}>
-                    <span
-                        data-testid="equity-label"
-                        style={{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            textAlign: 'center',
-                            fontSize: '9px',
-                            fontWeight: 600,
-                            color: colors.headerFooter,
-                            pointerEvents: 'none',
-                            userSelect: 'none',
-                            zIndex: 2,
-                        }}
-                    >
-                        {L.equity}
-                    </span>
+                <div style={headerStyle}>{L.liabilitiesHeader}</div>
+                <div style={barAreaStyle}>
+                    <div style={{ ...boxBorder, display: 'flex', flexDirection: 'column' }}>
+                        <TreeNodeRenderer
+                            nodes={ast.liabilities}
+                            scaleFactor={scaleFactor}
+                            rootAstId={ast.id}
+                            section="liabilities"
+                        />
+                        <SubtotalRow label={L.liabilitiesTotal} amount={liabilitiesSubtotal} testId="subtotal-liabilities" />
+                    </div>
+                    {/* Equity sub-section label — always rendered, zero-height */}
+                    <div style={{ position: 'relative', height: 0, overflow: 'visible' }}>
+                        <span
+                            data-testid="equity-label"
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                textAlign: 'center',
+                                fontSize: '9px',
+                                fontWeight: 600,
+                                color: colors.headerFooter,
+                                pointerEvents: 'none',
+                                userSelect: 'none',
+                                zIndex: 2,
+                            }}
+                        >
+                            {L.equityHeader}
+                        </span>
+                    </div>
+                    <div style={{ ...boxBorder, display: 'flex', flexDirection: 'column', borderTop: `1px solid ${colors.border}` }}>
+                        <TreeNodeRenderer
+                            nodes={ast.equity}
+                            scaleFactor={scaleFactor}
+                            rootAstId={ast.id}
+                            section="equity"
+                        />
+                        {(padding?.side === 'liabilities_equity' || equitySlackHeight > 0) && (
+                            <PaddingBlock
+                                heightPx={(padding?.side === 'liabilities_equity' ? renderedPaddingHeight : 0) + equitySlackHeight}
+                                type={padding?.side === 'liabilities_equity' ? padding.type : 'rounding'}
+                                invisible={padding?.side !== 'liabilities_equity'}
+                                dataTestId={padding?.side === 'liabilities_equity' ? `padding-${padding.type}` : 'padding-equity-slack'}
+                            />
+                        )}
+                        <SubtotalRow label={L.equityTotal} amount={equitySubtotal} testId="subtotal-equity" />
+                    </div>
+                    <SubtotalRow
+                        label={L.liabilitiesEquityTotal}
+                        amount={liabilitiesSubtotal + equitySubtotal}
+                        testId="subtotal-liabilities-equity"
+                    />
                 </div>
-                <TreeNodeRenderer
-                    nodes={ast.equity}
-                    scaleFactor={scaleFactor}
-                    rootAstId={ast.id}
-                    section="equity"
-                />
-                {padding?.side === 'liabilities_equity' && (
-                    <PaddingBlock amount={padding.amount} scaleFactor={scaleFactor} type={padding.type} />
-                )}
-                <FloatingLabel text={L.totalLiabilitiesEquity} position="bottom" />
             </div>
         </div>
     );

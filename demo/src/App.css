@@ -49,6 +49,7 @@ body,
     flex: 1 1 auto;
     min-width: 0;
     background: #ffffff;
+    position: relative;
 }
 
 .pane-divider {
@@ -83,6 +84,35 @@ body,
     color: #94a3b8;
     font-size: 14px;
     font-style: italic;
+}
+
+.locale-switcher {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.96);
+    color: #0f172a;
+    font-size: 12px;
+}
+
+.locale-switcher label {
+    font-weight: 600;
+}
+
+.locale-switcher select {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 12px;
+    background: #ffffff;
+    color: #0f172a;
 }
 
 /* ── Error Banner ──────────────────────────────────── */

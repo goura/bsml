@@ -11,7 +11,8 @@ bsml-renderer/
 ├── src/
 │   ├── index.ts              # Barrel export: parseBSML, transform + all types
 │   ├── constants/
-│   │   └── layout.ts          # Shared dimensions for transformer + layout + annotation nodes
+│   │   ├── layout.ts          # Shared dimensions for transformer + layout + annotation nodes
+│   │   └── labels.ts          # Lang dictionary + fallback/validation helpers
 │   ├── ast/
 │   │   └── types.ts           # AST interfaces (BSMLDocument, TreeNode, etc.)
 │   ├── parser/
@@ -46,10 +47,11 @@ bsml-renderer/
 │   │   └── transformer.test.ts # Bun test: transform output against expected data
 │   └── react/
 │       ├── happydom.ts         # Preload: registers happy-dom globals
-│       ├── BalanceSheetNode.test.tsx  # 6 component tests (TDD, no snapshots)
+│       ├── BalanceSheetNode.test.tsx  # 10 component tests (TDD, no snapshots)
+│       ├── BSMLCanvas.test.tsx        # Canvas wiring tests (ReactFlow props)
 │       ├── NoteNode.test.tsx          # Note node rendering tests
 │       ├── CalloutNode.test.tsx       # Callout pie/legend rendering tests
-│       └── useAutoLayout.test.ts     # 9 layout tests (T1–T9, including variable-height cases)
+│       └── useAutoLayout.test.ts     # 10 layout tests (T1–T10, including annotation-side placement)
 ├── demo/                      # Interactive BSML playground (Vite + Monaco + React Flow)
 │   ├── package.json           # Demo-specific dependencies
 │   ├── vite.config.ts         # Vite config with bsml-renderer alias
@@ -76,8 +78,21 @@ bsml-renderer/
 | **Chevrotain** over Peg.js | Better perf, built-in error recovery, clean CST/Visitor separation |
 | **Label omission** = property absent | Fixtures expect `label` key to be missing (not `undefined`) when DSL omits label |
 | `Assets`/`Liabilities`/`Equity` are structural keywords | They map directly to `TreeNode[]` arrays, NOT to `CategoryNode`s |
-| **`calculatedHeight` vs `totalHeight`** | `totalHeight` = bar-area px (used by React component); `calculatedHeight` = full node px including header+padding (used by Dagre) |
+| **`calculatedHeight` vs `totalHeight`** | `totalHeight` = bar-area px (used by React component); `calculatedHeight` = full node px including header (used by Dagre) |
 | **Layout constants are centralized** | `src/constants/layout.ts` is the single source of truth for widths/heights used by transformer and annotation nodes |
+| **Minimum row height is enforced** | `MIN_ROW_HEIGHT` keeps tiny financial rows readable and is applied in both renderer and transformer sizing |
+| **Edge routing defaults to smoothstep** | All edges are emitted as `type: 'smoothstep'` for clearer paths |
+| **Alias-less B/S edges use root handles** | Inter-company edges like `Company --> Subsidiary` attach to `handle-<BSId>-root-out` / `handle-<BSId>-root-in` to avoid “random row” attachments |
+| **Per-row handles respect accounting columns** | Asset item handles are on the left edge; Liability/Equity item handles are on the right edge |
+| **All item handles are stealth handles** | Item row `target`/`source` handles use `.bsml-invisible-handle` + absolute positioning so no default dots affect UI or flex layout |
+| **Block subtotals are rendered inside bars** | Each sheet renders 4 subtotal rows (`assetsTotal`, `liabilitiesTotal`, `equityTotal`, `liabilitiesEquityTotal`) inside the columns; no outer footer totals are rendered |
+| **Subtotal rows are part of layout math** | Transformer includes subtotal row heights in both `totalHeight` and `calculatedHeight` (`+1*MIN_ROW_HEIGHT` on assets, `+3*MIN_ROW_HEIGHT` on liabilities/equity side) |
+| **Annotation targets route by source accounting side** | Edges to Note/Callout choose `target-left`/`target-right` from source side (`assets` → right, otherwise left) to avoid wraparound connectors |
+| **BSML annotation auto-layout is side-aware** | `applyAutoLayout` uses BSML-only preprocessing (when `balanceSheet` nodes include `data.ast`) to rank annotation nodes left for assets-origin links and right otherwise, without changing actual React Flow edge semantics |
+| **Localization is `config.lang`-driven** | Supported `lang`: `"default"` and `"ja"`; unknown values fallback to `"default"` and transformer injects a full label set to avoid mixed locales |
+| **Demo locale selector overrides AST lang at render-time** | Demo UI exposes `default/ja` switcher; it clones parsed AST and forces `config.lang` for every balance sheet before `transform()`, leaving editor text untouched |
+| **Canvas drag is stateful** | `BSMLCanvas` uses `useNodesState`/`useEdgesState` and wires `onNodesChange`/`onEdgesChange`, so manual drag/edge edits persist after initial Dagre layout |
+| **Leaf rows must not flex-shrink** | `BalanceSheetNode` row/category/padding blocks set `flexShrink: 0` to prevent Flexbox from compressing clamped `MIN_ROW_HEIGHT` rows |
 | **Keyword lexing uses word boundaries** | Prevents collisions where identifiers like `piechart` could be split/misread as keyword tokens |
 | **Pie source alias is mandatory** | `pie` syntax is strictly `pie <BSId>.<alias> { ... }` to guarantee stable per-item handle IDs |
 | **Demo panes are user-resizable** | The demo split view uses a draggable divider with clamped editor width (20%–80%), with stacked fallback on narrow screens |

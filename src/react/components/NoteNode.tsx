@@ -37,7 +37,8 @@ export function NoteNode({ data }: NodeProps<NoteFlowNode>) {
             >
                 <span>{text}</span>
             </div>
-            <Handle type="target" position={Position.Left} className="bsml-invisible-handle" />
+            <Handle id="target-left" type="target" position={Position.Left} className="bsml-invisible-handle" />
+            <Handle id="target-right" type="target" position={Position.Right} className="bsml-invisible-handle" />
             <Handle type="source" position={Position.Right} className="bsml-invisible-handle" />
         </div>
     );

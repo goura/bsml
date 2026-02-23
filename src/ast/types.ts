@@ -13,6 +13,7 @@ export interface BalanceSheetNode {
         tolerance: number;
         currency: string;
         unit: string;
+        lang?: string;
     };
     assets: TreeNode[];
     liabilities: TreeNode[];

@@ -9,10 +9,10 @@ export const OUTER_BORDER_WIDTH = 2;
 
 /** Header overlay height budget used for Dagre sizing */
 export const BS_HEADER_HEIGHT = 40;
-/** Bottom footer/padding budget used for Dagre sizing */
-export const BS_PADDING_BOTTOM = 20;
 /** Default max content height for the tallest balance-sheet bar area */
 export const DEFAULT_MAX_NODE_HEIGHT = 600;
+/** Minimum height per rendered item row to keep text legible */
+export const MIN_ROW_HEIGHT = 24;
 
 /** Calculated total width for a BalanceSheet node */
 export const BS_NODE_WIDTH =

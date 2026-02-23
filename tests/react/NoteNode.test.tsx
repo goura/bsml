@@ -36,4 +36,10 @@ describe('NoteNode', () => {
         render(<NoteNode {...makeProps('Debt ratio needs adjustment.')} />);
         expect(screen.getByText('Debt ratio needs adjustment.')).toBeDefined();
     });
+
+    test('T3: has explicit target-left and target-right handles', () => {
+        const { container } = render(<NoteNode {...makeProps('memo')} />);
+        expect(container.querySelector('#target-left')).not.toBeNull();
+        expect(container.querySelector('#target-right')).not.toBeNull();
+    });
 });

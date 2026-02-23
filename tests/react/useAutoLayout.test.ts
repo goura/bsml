@@ -4,6 +4,8 @@
 import { expect, test, describe } from 'bun:test';
 import type { Node, Edge } from '@xyflow/react';
 import { applyAutoLayout } from '../../src/react/hooks/useAutoLayout.js';
+import { parseBSML } from '../../src/parser/index.js';
+import { transform } from '../../src/transformer/transformer.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -126,5 +128,29 @@ describe('applyAutoLayout', () => {
         expect(result).toHaveLength(1);
         expect(Number.isFinite(result[0].position.x)).toBe(true);
         expect(Number.isFinite(result[0].position.y)).toBe(true);
+    });
+
+    // T10: Asset-linked annotations are placed left of the source balance sheet.
+    test('T10: assets-linked note is auto-laid out on the left side', () => {
+        const ast = parseBSML(`
+BalanceSheet "CloudMatrix" {
+  config { tolerance = 1 currency = "JPY" unit = "百万円" }
+  Assets { goodwill "のれん" : 3500 }
+  Liabilities { loan "長期借入金" : 5000 }
+  Equity { capital "資本金" : 1500 }
+}
+
+note "MA_Note" { text = "MA note" }
+CloudMatrix.goodwill -.-> MA_Note
+        `);
+
+        const { nodes, edges } = transform(ast);
+        const layouted = applyAutoLayout(nodes, edges);
+
+        const cloudMatrix = layouted.find((node) => node.id === 'CloudMatrix');
+        const maNote = layouted.find((node) => node.id === 'MA_Note');
+        expect(cloudMatrix).toBeDefined();
+        expect(maNote).toBeDefined();
+        expect(maNote!.position.x).toBeLessThan(cloudMatrix!.position.x);
     });
 });

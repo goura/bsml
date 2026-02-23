@@ -44,6 +44,6 @@ pie CloudMatrix.loan {
 }
 
 // Edges use arrow operators; dotted edges are intended for annotations.
-CloudMatrix --> DataShield : "100% 買収"
+CloudMatrix.investments --> DataShield.capital : "100% 買収"
 CloudMatrix.goodwill -.-> MA_Note
 `;

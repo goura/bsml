@@ -159,9 +159,9 @@ describe('Full Pipeline Integration', () => {
 
         expect(megaH).toBeGreaterThan(0);
         expect(alphaH).toBeGreaterThan(0);
-        // MegaHoldings max side = 11,500 vs AlphaVentures max side = 1,100
-        // Ratio should be roughly 10×
-        expect(megaH / alphaH).toBeGreaterThan(5);
+        // With MIN_ROW_HEIGHT clamping, smaller sheets get extra height floor.
+        // Mega should still be much taller despite the floor inflation.
+        expect(megaH / alphaH).toBeGreaterThan(3.5);
     });
 
     // T5: no bounding-box overlap between any pair of nodes

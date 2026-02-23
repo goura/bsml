@@ -1,7 +1,13 @@
 // BSMLCanvas — Main React Flow canvas with auto-layout
 
-import React from 'react';
-import { ReactFlow, Background, Controls } from '@xyflow/react';
+import React, { useEffect, useMemo } from 'react';
+import {
+    ReactFlow,
+    Background,
+    Controls,
+    useNodesState,
+    useEdgesState,
+} from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import { BalanceSheetNode } from './BalanceSheetNode.js';
 import { NoteNode } from './NoteNode.js';
@@ -31,14 +37,27 @@ export interface BSMLCanvasProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function BSMLCanvas({ data, layoutOptions, style }: BSMLCanvasProps) {
-    const layoutedNodes = applyAutoLayout(data.nodes, data.edges, layoutOptions);
+    const layoutedNodes = useMemo(
+        () => applyAutoLayout(data.nodes, data.edges, layoutOptions),
+        [data.nodes, data.edges, layoutOptions],
+    );
+    const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(data.edges);
+
+    useEffect(() => {
+        setNodes(layoutedNodes);
+        setEdges(data.edges);
+    }, [layoutedNodes, data.edges, setNodes, setEdges]);
 
     return (
         <div style={{ width: '100%', height: '100%', ...style }}>
             <ReactFlow
-                nodes={layoutedNodes}
-                edges={data.edges}
+                nodes={nodes}
+                edges={edges}
                 nodeTypes={nodeTypes as any}
+                nodesDraggable={true}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
             >
