@@ -3,13 +3,47 @@
   "version": "0.1.0",
   "description": "BSML (Balance Sheet Modeling Language) parser and renderer",
   "license": "MIT",
+  "keywords": [
+    "balance-sheet",
+    "bsml",
+    "finance",
+    "react",
+    "react-flow",
+    "renderer",
+    "visualization"
+  ],
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "test": "bun test",
     "test:watch": "bun test --watch"
+  },
+  "peerDependencies": {
+    "@xyflow/react": ">=12",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^2.0.4",
+    "chevrotain": "^11.0.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.7.0",
@@ -19,12 +53,9 @@
     "@types/dagre": "^0.7.53",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "happy-dom": "^20.7.0",
-    "typescript": "^5.7.0"
-  },
-  "dependencies": {
-    "@dagrejs/dagre": "^2.0.4",
     "@xyflow/react": "^12.10.1",
-    "chevrotain": "^11.0.0"
+    "happy-dom": "^20.7.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0"
   }
 }
