@@ -3,6 +3,7 @@
 > Write balance sheets as plain text. Render them as interactive diagrams.
 
 [![CI](https://github.com/goura/bsml/actions/workflows/ci.yml/badge.svg)](https://github.com/goura/bsml/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/goura/bsml/graph/badge.svg?token=)](https://codecov.io/gh/goura/bsml)
 [![npm](https://img.shields.io/npm/v/@goura/bsml)](https://www.npmjs.com/package/@goura/bsml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
