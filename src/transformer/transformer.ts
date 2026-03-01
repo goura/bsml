@@ -168,7 +168,7 @@ export function transform(ast: BSMLDocument, maxNodeHeight = DEFAULT_MAX_NODE_HE
         const assetsColumnHeight =
             assetsRenderedHeight + (padding?.side === 'assets' ? paddingRenderedHeight : 0) + MIN_ROW_HEIGHT;
         const liabEqColumnHeight =
-            liabEqRenderedHeight + (padding?.side === 'liabilities_equity' ? paddingRenderedHeight : 0) + MIN_ROW_HEIGHT * 3;
+            liabEqRenderedHeight + (padding?.side === 'liabilities_equity' ? paddingRenderedHeight : 0) + MIN_ROW_HEIGHT * 3 + BS_HEADER_HEIGHT;
         const contentHeight = Math.max(assetsColumnHeight, liabEqColumnHeight);
         const data: BalanceSheetNodeData = {
             ast: bs,

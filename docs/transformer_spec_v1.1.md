@@ -80,6 +80,16 @@ Generate React Flow `Node` objects:
 - **Note Nodes:** `id` = `ast.id`, `type` = `'note'`, `data` = `NoteNodeData`.
 - **Callout Nodes:** `id` = `callout-${ast.source.bsId}-${ast.source.alias}`, `type` = `'callout'`, `data` = `CalloutNodeData`.
 
+**Height calculation for BalanceSheet nodes:**
+```
+assetsColumnHeight    = renderedAssetsHeight + paddingHeight(assets side) + MIN_ROW_HEIGHT          // 1 subtotal row
+liabEqColumnHeight   = renderedLiabEqHeight  + paddingHeight(liabEq side) + MIN_ROW_HEIGHT * 3 + BS_HEADER_HEIGHT
+//                                                                            ^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^
+//                                                                            3 subtotal rows    Equity header row
+totalHeight          = max(assetsColumnHeight, liabEqColumnHeight)
+calculatedHeight     = totalHeight + BS_HEADER_HEIGHT   // the top Assets/Liabilities header band
+```
+
 ### 3.4 Edge & Handle Generation
 React Flow needs exact `sourceHandle` and `targetHandle` strings.
 

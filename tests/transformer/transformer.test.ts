@@ -59,9 +59,9 @@ const orderFixtureExpected: BSMLReactFlowData = {
             data: {
                 ast: orderFixtureInput.balanceSheets[0],
                 scaleFactor: 0.6,
-                totalHeight: 672,
+                totalHeight: 712,
                 calculatedWidth: BS_NODE_WIDTH,
-                calculatedHeight: 672 + BS_HEADER_HEIGHT,
+                calculatedHeight: 712 + BS_HEADER_HEIGHT,
                 padding: {
                     side: "liabilities_equity",
                     type: "imbalance",
@@ -140,14 +140,14 @@ describe('BSML Transformer', () => {
     it('calculatedHeight includes subtotal-row heights plus header constant', () => {
         // orderFixture: maxSideValue = 1000 (assets), scaleFactor = 0.6
         // assets side = 600 + 24 (subtotal) = 624
-        // liabilities/equity side = 480 + 120 (imbalance) + 72 (3 subtotals) = 672
-        // contentHeight = 672
+        // liabilities/equity side = 480 + 120 (imbalance) + 72 (3 subtotals) + 40 (equity header) = 712
+        // contentHeight = 712
         // calculatedWidth = BS_NODE_WIDTH (constant)
         const result = transform(orderFixtureInput);
         const bsNode = result.nodes.find((n) => n.type === 'balanceSheet');
         expect(bsNode).toBeDefined();
         expect((bsNode!.data as any).calculatedWidth).toBe(BS_NODE_WIDTH);
-        expect((bsNode!.data as any).calculatedHeight).toBe(672 + BS_HEADER_HEIGHT);
+        expect((bsNode!.data as any).calculatedHeight).toBe(712 + BS_HEADER_HEIGHT);
     });
 
     it('fixture 3: balanced BS produces no padding', () => {
@@ -199,7 +199,7 @@ describe('BSML Transformer', () => {
         const result = transform(emptyAst);
         const bsNode = result.nodes.find((n) => n.type === 'balanceSheet');
         expect((bsNode!.data as any).scaleFactor).toBe(0);
-        expect((bsNode!.data as any).totalHeight).toBe(3 * MIN_ROW_HEIGHT);
+        expect((bsNode!.data as any).totalHeight).toBe(3 * MIN_ROW_HEIGHT + BS_HEADER_HEIGHT);
     });
 
     it('fixture 1: dotted edge produces animated + strokeDasharray', () => {
@@ -302,9 +302,9 @@ describe('BSML Transformer', () => {
         // global scale is based on max side (1000) => scaleFactor = 600 / 1000 = 0.6.
         // each tiny row would be 0.6px without clamp, but is clamped to MIN_ROW_HEIGHT.
         const expectedTotalHeight = 30 * MIN_ROW_HEIGHT;
-        expect((tinyNode!.data as any).totalHeight).toBe(expectedTotalHeight + 3 * MIN_ROW_HEIGHT);
+        expect((tinyNode!.data as any).totalHeight).toBe(expectedTotalHeight + 3 * MIN_ROW_HEIGHT + BS_HEADER_HEIGHT);
         expect((tinyNode!.data as any).calculatedHeight).toBe(
-            expectedTotalHeight + 3 * MIN_ROW_HEIGHT + BS_HEADER_HEIGHT,
+            expectedTotalHeight + 3 * MIN_ROW_HEIGHT + BS_HEADER_HEIGHT + BS_HEADER_HEIGHT,
         );
         expect((tinyNode!.data as any).totalHeight).toBeGreaterThan(600);
     });
@@ -341,9 +341,9 @@ describe('BSML Transformer', () => {
 
         const expectedAssets = 2 * MIN_ROW_HEIGHT;
         const expectedLiabEq = 2 * MIN_ROW_HEIGHT;
-        expect((clampNode!.data as any).totalHeight).toBe(Math.max(expectedAssets + MIN_ROW_HEIGHT, expectedLiabEq + 3 * MIN_ROW_HEIGHT));
+        expect((clampNode!.data as any).totalHeight).toBe(Math.max(expectedAssets + MIN_ROW_HEIGHT, expectedLiabEq + 3 * MIN_ROW_HEIGHT + BS_HEADER_HEIGHT));
         expect((clampNode!.data as any).calculatedHeight).toBe(
-            Math.max(expectedAssets + MIN_ROW_HEIGHT, expectedLiabEq + 3 * MIN_ROW_HEIGHT) + BS_HEADER_HEIGHT,
+            Math.max(expectedAssets + MIN_ROW_HEIGHT, expectedLiabEq + 3 * MIN_ROW_HEIGHT + BS_HEADER_HEIGHT) + BS_HEADER_HEIGHT,
         );
     });
 

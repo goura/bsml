@@ -191,15 +191,30 @@ interface PaddingBlockProps {
 }
 
 function PaddingBlock({ heightPx, type, dataTestId, invisible }: PaddingBlockProps) {
+    if (invisible) {
+        // 会計慣習：空白セルには角から角へ斜線を引く
+        return (
+            <div
+                data-testid={dataTestId ?? 'padding-rounding'}
+                style={{
+                    ...boxBorder,
+                    height: `${heightPx}px`,
+                    flexShrink: 0,
+                    position: 'relative',
+                }}
+            >
+                <svg
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+                    preserveAspectRatio="none"
+                >
+                    <line x1="100%" y1="0" x2="0" y2="100%" stroke="rgba(100,116,139,0.4)" strokeWidth="1" />
+                </svg>
+            </div>
+        );
+    }
+
     const style: React.CSSProperties =
-        invisible
-            ? {
-                ...boxBorder,
-                height: `${heightPx}px`,
-                flexShrink: 0,
-                background: 'transparent',
-            }
-            : type === 'imbalance'
+        type === 'imbalance'
             ? {
                 ...boxBorder,
                 height: `${heightPx}px`,
@@ -269,7 +284,7 @@ export function BalanceSheetNode({ data }: NodeProps<BSFlowNode>) {
     const liabilitiesNaturalHeight = renderedLiabilitiesHeight + MIN_ROW_HEIGHT;
     const equityNaturalHeight =
         renderedEquityHeight + (padding?.side === 'liabilities_equity' ? renderedPaddingHeight : 0) + MIN_ROW_HEIGHT;
-    const rightNaturalHeight = liabilitiesNaturalHeight + equityNaturalHeight + MIN_ROW_HEIGHT;
+    const rightNaturalHeight = liabilitiesNaturalHeight + equityNaturalHeight + MIN_ROW_HEIGHT + BS_HEADER_HEIGHT;
 
     const assetsSlackHeight = Math.max(data.totalHeight - assetsNaturalHeight, 0);
     const rightSlackHeight = Math.max(data.totalHeight - rightNaturalHeight, 0);
@@ -374,27 +389,17 @@ export function BalanceSheetNode({ data }: NodeProps<BSFlowNode>) {
                         />
                         <SubtotalRow label={L.liabilitiesTotal} amount={liabilitiesSubtotal} testId="subtotal-liabilities" />
                     </div>
-                    {/* Equity sub-section label — always rendered, zero-height */}
-                    <div style={{ position: 'relative', height: 0, overflow: 'visible' }}>
-                        <span
-                            data-testid="equity-label"
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                right: 0,
-                                textAlign: 'center',
-                                fontSize: '9px',
-                                fontWeight: 600,
-                                color: colors.headerFooter,
-                                pointerEvents: 'none',
-                                userSelect: 'none',
-                                zIndex: 2,
-                            }}
-                        >
-                            {L.equityHeader}
-                        </span>
+                    {/* Equity section header — real row, same visual weight as Assets/Liabilities */}
+                    <div
+                        data-testid="equity-label"
+                        style={{
+                            ...headerStyle,
+                            borderTop: `2px solid ${colors.border}`,
+                        }}
+                    >
+                        {L.equityHeader}
                     </div>
-                    <div style={{ ...boxBorder, display: 'flex', flexDirection: 'column', borderTop: `1px solid ${colors.border}` }}>
+                    <div style={{ ...boxBorder, display: 'flex', flexDirection: 'column' }}>
                         <TreeNodeRenderer
                             nodes={ast.equity}
                             scaleFactor={scaleFactor}

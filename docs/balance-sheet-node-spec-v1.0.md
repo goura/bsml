@@ -29,9 +29,10 @@ To maintain pixel-perfect mathematical proportions, the AI MUST adhere to these 
 
 ## 4. Traditional Structure & Layout Rules (Headers/Footers)
 
-1. **Section Headers:** The component MUST display section labels at the top of the relevant sections. For example, "Assets" (資産の部) for the Left Column, "Liabilities" (負債の部) for the Liabilities, and "Equity" (純資産の部) for the Equity. The exact text should be configurable via props (e.g., `data.labels.assets`, defaulting to English).
-2. **Total Footers:** The component MUST display a total row at the bottom of the Left Column (e.g., "Total Assets"), and at the bottom of the Right Column (e.g., "Total Liabilities & Equity"). The exact text should be configurable via props (e.g., `data.labels.totalAssets`).
-3. **Height Balancing Constraint:** Traditional text elements (Headers/Footers) must **not break the proportional symmetry** of the left and right blocks. You MUST implement them so they float/overlay (`position: absolute`) or are structurally outside the mathematical box layout so that the Left and Right scale heights continue to match perfectly.
+1. **Section Headers:** The component MUST display section labels at the top of the relevant sections: "Assets" (資産の部) for the Left Column, "Liabilities" (負債の部) for the Liabilities sub-section. The exact text should be configurable via props (e.g., `data.labels.assets`), defaulting to English.
+2. **Equity Header:** The Equity (純資産の部) header MUST be rendered as a **real fixed-height row** (`BS_HEADER_HEIGHT` px) between the Liabilities sub-section and the Equity items, **not** as an absolute-positioned overlay. It should be visually identical to the Assets and Liabilities headers (same font size, weight, alignment, and border separators). A strong `borderTop` is applied at the Liabilities → Equity transition.
+3. **Total Footers:** The component MUST display a total row at the bottom of the Left Column (e.g., "Total Assets"), and at the bottom of the Right Column (e.g., "Total Liabilities & Equity"). The exact text should be configurable via props.
+4. **Height Balancing Constraint:** The Assets and Liabilities headers at the very top of each column are placed **outside** the mathematical bar area (`barAreaStyle`), so they do not affect proportional item heights. The Equity header row, however, is inside the right-column bar area and its height IS included in the `totalHeight` / `liabEqColumnHeight` calculation.
 
 ## 5. Recursive Rendering Strategy
 
@@ -80,6 +81,13 @@ The root `<BalanceSheetNode />` should return:
 ## 7. Handling Imbalance / Padding
 If `data.padding` exists:
 - Create a `div` with `style={{ height: `${data.padding.amount * data.scaleFactor}px` }}`.
-- If `data.padding.type === 'imbalance'`, style it aggressively: e.g., `bg-red-500/50 striped-pattern text-red-900 font-bold`. Label it "IMBALANCE".
+- If `data.padding.type === 'imbalance'`, style it aggressively: e.g., red background, striped pattern, "IMBALANCE" label in bold.
 - If `data.padding.type === 'rounding'`, style it neutrally: e.g., transparent or grey hash pattern.
 - Append this div to the bottom of the Left or Right column, depending on `data.padding.side`.
+
+## 8. Blank Slack Cells (Diagonal Slash)
+When the bar area of one side is taller than the other (i.e., slack height > 0), a blank filler block is rendered on the shorter side **above** the sub-total row.
+
+- Per Japanese accounting convention, blank cells in a Balance Sheet are filled with a **single diagonal slash** from the **top-right corner to the bottom-left corner** of the cell.
+- Implementation: render an SVG (`width: 100%; height: 100%; preserveAspectRatio: none`) with `<line x1="100%" y1="0" x2="0" y2="100%" />` absolutely positioned over the filler div.
+- The `invisible` prop on `PaddingBlock` triggers this rendering (distinct from the `rounding` or `imbalance` styles).
