@@ -2,6 +2,7 @@
   "name": "bsml-renderer",
   "version": "0.1.0",
   "description": "BSML (Balance Sheet Modeling Language) parser and renderer",
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
