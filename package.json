@@ -1,8 +1,16 @@
 {
-  "name": "bsml-renderer",
+  "name": "@goura/bsml",
   "version": "0.1.0",
   "description": "BSML (Balance Sheet Modeling Language) parser and renderer",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goura/bsml.git"
+  },
+  "homepage": "https://github.com/goura/bsml#readme",
+  "bugs": {
+    "url": "https://github.com/goura/bsml/issues"
+  },
   "keywords": [
     "balance-sheet",
     "bsml",
