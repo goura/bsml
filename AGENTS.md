@@ -2,12 +2,21 @@
 
 ## Project Overview
 
-A TypeScript toolkit to **parse** and **render** BSML (Balance Sheet Modeling Language) — an HCL-inspired DSL for visualizing corporate balance sheets, capital ties, and financial annotations.
+KISS! DRY! YAGNI!
+
+EDIT THIS FILE AFTER YOU EDITED SOMETHING IN THIS PROJECT
+
+This is a TypeScript toolkit to **parse** and **render** BSML (Balance Sheet Modeling Language) — an HCL-inspired DSL for visualizing corporate balance sheets, capital ties, and financial annotations.
 
 ## Directory Structure
 
 ```
 bsml-renderer/
+├── .github/
+│   ├── workflows/
+│   │   └── ci.yml             # GitHub Actions: bun test + bun run build on push/PR
+│   └── assets/
+│       └── screenshot-ja.png  # README screenshot
 ├── src/
 │   ├── index.ts              # Barrel export: parseBSML, transform + all types
 │   ├── constants/
@@ -66,7 +75,9 @@ bsml-renderer/
 │   └── bsml_spec_v1.3.md      # Language spec
 ├── orders/                    # [DO NOT REFER DIRECTLY] Inbox for tasks between human ↔ agents (details omitted)
 ├── tmp/                       # Temporary scripts and sandbox testing
+├── LICENSE
 ├── package.json
+├── tsup.config.ts             # tsup build config (ESM + CJS dual output)
 └── tsconfig.json
 ```
 
@@ -122,7 +133,9 @@ const { nodes, edges } = transform(ast);
 - **Language:** TypeScript (ES2020, strict, JSX: react-jsx)
 - **Parser:** [Chevrotain](https://chevrotain.io/) v11 (tokenizer + CST parser + visitor)
 - **Transformer:** Pure function layer — AST → React Flow nodes + edges (spec v1.1)
+- **Build:** [tsup](https://tsup.egoist.dev/) (esbuild-based, ESM + CJS dual output)
 - **Tests:** [Bun test runner](https://bun.sh/docs/cli/test) + [@testing-library/react](https://testing-library.com/docs/react-testing-library/intro/) + happy-dom
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) — runs on every push/PR to `main`
 - **Renderer:** `<BalanceSheetNode />` custom React Flow node (spec v1.0)
 - **Demo App:** Vite + `@monaco-editor/react` resizable split-pane playground (`demo/`)
 
