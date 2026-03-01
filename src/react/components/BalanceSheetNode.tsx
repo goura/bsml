@@ -15,7 +15,7 @@ const colors = {
     equityBg: 'var(--bsml-equity-bg, #f0fdf4)',
     border: 'var(--bsml-border-color, #1e293b)',
     categoryLabel: 'var(--bsml-category-label-color, rgba(30,41,59,0.2))',
-    headerFooter: 'var(--bsml-header-footer-color, rgba(30,41,59,0.35))',
+    headerFooter: 'var(--bsml-header-footer-color, #1e293b)',
 } as const;
 
 // ── Shared box-sizing reset ───────────────────────────────────────────────────
@@ -308,9 +308,10 @@ export function BalanceSheetNode({ data }: NodeProps<BSFlowNode>) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '10px',
-        fontWeight: 600,
+        fontSize: '11px',
+        fontWeight: 700,
         color: colors.headerFooter,
+        borderBottom: `1px solid ${colors.border}`,
         userSelect: 'none',
     };
 
