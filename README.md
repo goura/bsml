@@ -64,6 +64,7 @@ CloudMatrix.investments --> DataShield.capital : "100% 買収"
 The `demo/` directory contains a live playground built with Vite + Monaco Editor.
 
 ```bash
+npm install
 cd demo
 npm install
 npm run dev
